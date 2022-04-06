@@ -13,16 +13,8 @@ type Context struct {
 	Req        *http.Request
 	Path       string
 	Method     string
+	Params     map[string]string
 	StatusCode int
-}
-
-func newContest(w http.ResponseWriter, r *http.Request) *Context {
-	return &Context{
-		Writer: w,
-		Req:    r,
-		Path:   r.URL.Path,
-		Method: r.Method,
-	}
 }
 
 func (c *Context) PostForm(key string) string {
@@ -31,6 +23,10 @@ func (c *Context) PostForm(key string) string {
 
 func (c *Context) Query(key string) string {
 	return c.Req.URL.Query().Get(key)
+}
+
+func (c *Context) Param(key string) string {
+	return c.Params[key]
 }
 
 func (c *Context) Status(code int) {
@@ -66,4 +62,13 @@ func (c *Context) HTML(code int, html string) {
 	c.SetHeader("Content-Type", "text/html")
 	c.Status(code)
 	c.Writer.Write([]byte(html))
+}
+
+func newContest(w http.ResponseWriter, r *http.Request) *Context {
+	return &Context{
+		Writer: w,
+		Req:    r,
+		Path:   r.URL.Path,
+		Method: r.Method,
+	}
 }
