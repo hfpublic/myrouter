@@ -7,14 +7,14 @@ import (
 
 type router struct {
 	roots    map[string]*node
-	handlers map[string]HandlerFunc
+	handlers map[string]HandlersChain
 }
 
 func newRouter() *router {
-	return &router{roots: map[string]*node{}, handlers: make(map[string]HandlerFunc)}
+	return &router{roots: map[string]*node{}, handlers: make(map[string]HandlersChain)}
 }
 
-func (r *router) addRoute(method string, pattern string, handler HandlerFunc) {
+func (r *router) addRoute(method string, pattern string, handler HandlersChain) {
 	if _, has := r.roots[method]; !has {
 		r.roots[method] = &node{}
 	}
@@ -30,10 +30,11 @@ func (r *router) handle(c *Context) {
 	if n != nil {
 		c.Params = params
 		key := fmt.Sprintf("%s-%s", c.Method, n.pattern)
-		r.handlers[key](c)
+		c.handlers = r.handlers[key]
 	} else {
 		fmt.Fprintf(c.Writer, "404 NOT FOUND: %s\n", c.Path)
 	}
+	c.Next()
 }
 
 func (r *router) getRouter(method string, paths string) (*node, map[string]string) {

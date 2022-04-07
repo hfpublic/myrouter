@@ -8,6 +8,8 @@ import (
 
 type HandlerFunc func(*Context)
 
+type HandlersChain []HandlerFunc
+
 type Engine struct {
 	*RouterGroup
 	router *router
@@ -16,8 +18,9 @@ type Engine struct {
 
 type RouterGroup struct {
 	prefix      string
-	middlewares []HandlerFunc
+	middlewares HandlersChain
 	engine      *Engine
+	parent      *RouterGroup
 }
 
 func New() *Engine {
@@ -32,6 +35,7 @@ func (group *RouterGroup) Group(prefix string) *RouterGroup {
 	newGroup := &RouterGroup{
 		prefix: fmt.Sprintf("%s%s", group.prefix, prefix),
 		engine: engine,
+		parent: group,
 	}
 	engine.groups = append(engine.groups, newGroup)
 	return newGroup
@@ -45,6 +49,10 @@ func (group *RouterGroup) POST(pattern string, handler HandlerFunc) {
 	group.addRoute("POST", pattern, handler)
 }
 
+func (group *RouterGroup) Use(middlewares ...HandlerFunc) {
+	group.middlewares = append(group.middlewares, middlewares...)
+}
+
 func (engine *Engine) RUN(addr string) error {
 	return http.ListenAndServe(addr, engine)
 }
@@ -56,6 +64,13 @@ func (engine *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (group *RouterGroup) addRoute(method string, comp string, handler HandlerFunc) {
 	pattern := fmt.Sprintf("%s%s", group.prefix, comp)
+	handlers := make(HandlersChain, 0)
+	groupPath := group
+	for groupPath != nil {
+		handlers = append(groupPath.middlewares, handlers...)
+		groupPath = groupPath.parent
+	}
+	handlers = append(handlers, handler)
 	log.Printf("router %4s-%s", method, pattern)
-	group.engine.router.addRoute(method, pattern, handler)
+	group.engine.router.addRoute(method, pattern, handlers)
 }

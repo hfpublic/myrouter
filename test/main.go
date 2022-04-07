@@ -51,6 +51,7 @@ func main() {
 		v2.GET("/index", func(ctx *myrouter.Context) {
 			ctx.HTML(http.StatusOK, "<h1>hello myrouter, v2</h1>")
 		})
+		v2.Use(myrouter.Logger())
 		// curl "http://localhost:9090/v2/hello/hfpublic"
 		v2.GET("/hello/:name", func(c *myrouter.Context) {
 			c.String(http.StatusOK, "v2 hello %s, you are at %s\n", c.Param("name"), c.Path)

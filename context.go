@@ -15,6 +15,8 @@ type Context struct {
 	Method     string
 	Params     map[string]string
 	StatusCode int
+	handlers   HandlersChain
+	index      int
 }
 
 func (c *Context) PostForm(key string) string {
@@ -64,11 +66,20 @@ func (c *Context) HTML(code int, html string) {
 	c.Writer.Write([]byte(html))
 }
 
+func (c *Context) Next() {
+	c.index++
+	s := len(c.handlers)
+	for ; c.index < s; c.index++ {
+		c.handlers[c.index](c)
+	}
+}
+
 func newContest(w http.ResponseWriter, r *http.Request) *Context {
 	return &Context{
 		Writer: w,
 		Req:    r,
 		Path:   r.URL.Path,
 		Method: r.Method,
+		index:  -1,
 	}
 }
