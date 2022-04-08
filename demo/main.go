@@ -74,7 +74,7 @@ func main() {
 
 	// "http://localhost:9090/tmpl/css"
 	r.GET("/tmpl/css", func(ctx *myrouter.Context) {
-		ctx.HTML(200, "css.tmpl", nil)
+		ctx.HTML(http.StatusOK, "css.tmpl", nil)
 		ctx.Next()
 	})
 
@@ -82,7 +82,7 @@ func main() {
 	bbb := &testStruct{Name: "bbb", Age: 22}
 	// "http://localhost:9090/tmpl/struct"
 	r.GET("/tmpl/struct", func(ctx *myrouter.Context) {
-		ctx.HTML(200, "arr.tmpl", myrouter.H{
+		ctx.HTML(http.StatusOK, "arr.tmpl", myrouter.H{
 			"title":   "myrouter",
 			"structs": []*testStruct{aaa, bbb},
 		})
@@ -90,10 +90,18 @@ func main() {
 
 	// "http://localhost:9090/tmpl/func"
 	r.GET("/tmpl/func", func(ctx *myrouter.Context) {
-		ctx.HTML(200, "func.tmpl", myrouter.H{
+		ctx.HTML(http.StatusOK, "func.tmpl", myrouter.H{
 			"title": "myrouter",
 			"now":   time.Now().UTC(),
 		})
+	})
+
+	r.Use(myrouter.Recovery())
+
+	// curl "http://localhost:9090/panic"
+	r.GET("/panic", func(ctx *myrouter.Context) {
+		names := []string{"hfpublic"}
+		ctx.String(http.StatusOK, names[100])
 	})
 
 	r.RUN(":9090")

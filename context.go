@@ -65,7 +65,7 @@ func (c *Context) HTML(code int, name string, data any) {
 	c.SetHeader("Content-Type", "text/html")
 	c.Status(code)
 	if err := c.engine.httpTemplates.ExecuteTemplate(c.Writer, name, data); err != nil {
-		c.JSON(500, H{
+		c.JSON(http.StatusInternalServerError, H{
 			"message": err.Error(),
 		})
 	}
