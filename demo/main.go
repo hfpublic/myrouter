@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"html/template"
 	"net/http"
+	"time"
 
 	"github.com/hfpublic/myrouter"
 )
@@ -10,9 +13,9 @@ func main() {
 	r := myrouter.New()
 
 	// curl -i http://localhost:9090/
-	r.GET("/", func(c *myrouter.Context) {
-		c.HTML(http.StatusOK, "<h1>hello myrouter</h1>")
-	})
+	// r.GET("/", func(c *myrouter.Context) {
+	// 	c.HTML(http.StatusOK, "<h1>hello myrouter</h1>")
+	// })
 
 	// curl "http://localhost:9090/hello?name=hfpublic"
 	r.GET("/hello", func(c *myrouter.Context) {
@@ -41,7 +44,9 @@ func main() {
 	{
 		// curl "http://localhost:9090/v1/index"
 		v1.GET("/index", func(ctx *myrouter.Context) {
-			ctx.HTML(http.StatusOK, "<h1>hello myrouter, v1</h1>")
+			ctx.JSON(http.StatusOK, myrouter.H{
+				"message": "hello myrouter, v1",
+			})
 		})
 	}
 
@@ -49,7 +54,9 @@ func main() {
 	{
 		// curl "http://localhost:9090/v2/index"
 		v2.GET("/index", func(ctx *myrouter.Context) {
-			ctx.HTML(http.StatusOK, "<h1>hello myrouter, v2</h1>")
+			ctx.JSON(http.StatusOK, myrouter.H{
+				"message": "hello myrouter, v2",
+			})
 		})
 		v2.Use(myrouter.Logger())
 		// curl "http://localhost:9090/v2/hello/hfpublic"
@@ -58,5 +65,46 @@ func main() {
 		})
 	}
 
+	r.SetFuncMap(template.FuncMap{
+		"FormatAsDate": FormatAsDate,
+	})
+	r.LoadHTMLGlob("templates/*")
+	// curl "http://localhost:9090/assets/testfile.txt"
+	r.Static("/assets", "./static")
+
+	// "http://localhost:9090/tmpl/css"
+	r.GET("/tmpl/css", func(ctx *myrouter.Context) {
+		ctx.HTML(200, "css.tmpl", nil)
+		ctx.Next()
+	})
+
+	aaa := &testStruct{Name: "aaa", Age: 20}
+	bbb := &testStruct{Name: "bbb", Age: 22}
+	// "http://localhost:9090/tmpl/struct"
+	r.GET("/tmpl/struct", func(ctx *myrouter.Context) {
+		ctx.HTML(200, "arr.tmpl", myrouter.H{
+			"title":   "myrouter",
+			"structs": []*testStruct{aaa, bbb},
+		})
+	})
+
+	// "http://localhost:9090/tmpl/func"
+	r.GET("/tmpl/func", func(ctx *myrouter.Context) {
+		ctx.HTML(200, "func.tmpl", myrouter.H{
+			"title": "myrouter",
+			"now":   time.Now().UTC(),
+		})
+	})
+
 	r.RUN(":9090")
+}
+
+type testStruct struct {
+	Name string
+	Age  int8
+}
+
+func FormatAsDate(t time.Time) string {
+	year, month, day := t.Date()
+	return fmt.Sprintf("%d-%02d-%02d", year, month, day)
 }

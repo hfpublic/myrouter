@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-type H map[string]interface{}
+type H map[string]any
 
 type Context struct {
 	Writer     http.ResponseWriter
@@ -17,6 +17,7 @@ type Context struct {
 	StatusCode int
 	handlers   HandlersChain
 	index      int
+	engine     *Engine
 }
 
 func (c *Context) PostForm(key string) string {
@@ -40,13 +41,13 @@ func (c *Context) SetHeader(key, value string) {
 	c.Writer.Header().Set(key, value)
 }
 
-func (c *Context) String(code int, format string, values ...interface{}) {
+func (c *Context) String(code int, format string, values ...any) {
 	c.SetHeader("Content-Type", "text/plain")
 	c.Status(code)
 	c.Writer.Write([]byte(fmt.Sprintf(format, values...)))
 }
 
-func (c *Context) JSON(code int, obj interface{}) {
+func (c *Context) JSON(code int, obj any) {
 	c.SetHeader("Content-Type", "application/json")
 	c.Status(code)
 	encoder := json.NewEncoder(c.Writer)
@@ -60,10 +61,15 @@ func (c *Context) Data(code int, data []byte) {
 	c.Writer.Write(data)
 }
 
-func (c *Context) HTML(code int, html string) {
+func (c *Context) HTML(code int, name string, data any) {
 	c.SetHeader("Content-Type", "text/html")
 	c.Status(code)
-	c.Writer.Write([]byte(html))
+	if err := c.engine.httpTemplates.ExecuteTemplate(c.Writer, name, data); err != nil {
+		c.JSON(500, H{
+			"message": err.Error(),
+		})
+	}
+	c.Next()
 }
 
 func (c *Context) Next() {
